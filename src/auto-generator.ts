@@ -13,6 +13,7 @@ class AutoGenerator {
     this.foreignKeys = tableData.foreignKeys;
     this.hasTriggerTables = tableData.hasTriggerTables;
     this.indexes = tableData.indexes;
+    //BUG: relations schemas not correct
     this.relations = tableData.relations;
     this.dialect = dialect;
     this.options = options;
@@ -65,20 +66,26 @@ class AutoGenerator {
     const text = {};
     tableNames.forEach(table => {
       let str = header;
+
       const [schemaName, tableNameOrig] = (0, types_1.qNameSplit)(table);
       const tableName = (0, types_1.makeTableName)(this.options.caseModel, tableNameOrig, this.options.singularize, this.options.lang);
       if (this.options.lang === 'ts') {
         const associations = this.addTypeScriptAssociationMixins(table);
+        console.error(associations)
         const needed = lodash_1.default.keys(associations.needed).sort();
         needed.forEach(fkTable => {
           const set = associations.needed[fkTable];
           const [fkSchema, fkTableName] = (0, types_1.qNameSplit)(fkTable);
+          let importSchema = tableNames.includes('etalon.' + fkTableName) ? 'etalon' : 'public';
           const filename = (0, types_1.recase)(this.options.caseFile, fkTableName, this.options.singularize);
-          console.error('table: ' + fkTableName + ' schema: ' + fkSchema )
+          console.error('table: ' + tableName + ' import: ' + fkTableName + ' schema: ' + importSchema + ' impschema: ' + schemaName )
           console.error(set)
+          console.error(fkTable)
+          console.error(fkTable.split('.').at(0))
+          console.error('almafa')
           set.values()
           str += 'import type { ';
-          str += Array.from(set.values()).map(itemName => (itemName.split('Id').at(0)) + fkSchema[0].toUpperCase() + fkSchema.slice(1) + (itemName.endsWith('Id') ? 'Id' : '')  + ' as ' + itemName).sort().join(', ');
+          str += Array.from(set.values()).map(itemName => (itemName.split('Id').at(0)) + importSchema[0].toUpperCase() + importSchema.slice(1) + (itemName.endsWith('Id') ? 'Id' : '')  + ' as ' + itemName).sort().join(', ');
           str += ` } from './${filename}';\n`;
         });
         str += "\nexport interface #TABLE#Attributes {\n";
@@ -146,7 +153,6 @@ class AutoGenerator {
       timestamps || (timestamps = this.isTimestampField(field));
       paranoid || (paranoid = this.isParanoidField(field));
       str += this.addField(table, field);
-      console.error(str)
     });
     // trim off last ",\n"
     str = str.substring(0, str.length - 2) + "\n";
@@ -578,6 +584,9 @@ class AutoGenerator {
     const needed = {};
     let str = '';
     table = this.addSchemaForRelations(table);
+    console.error('hhm')
+    console.error(table)
+
     this.relations.forEach(rel => {
       var _a, _b, _c;
       var _d, _e;
